@@ -1,38 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
 import User, { IUser } from '../models/user.model';
 import { AppError } from '../middleware/error.middleware';
-import { isValidEmail, isStrongPassword, hasRequiredFields, sanitizeInput } from '../utils/validator';
+import { RegisterInput, LoginInput } from '../validation/auth.schema';
 
 // @desc    Register a user
 // @route   POST /api/auth/register
 // @access  Public
 export const register = async (
-  req: Request,
+  req: Request<{}, {}, RegisterInput>,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { name, email, password } = req.body;
-
-    // Validate required fields
-    if (!hasRequiredFields({ name, email, password }, ['name', 'email', 'password'])) {
-      return next(new AppError('Please provide name, email and password', 400));
-    }
-
-    // Validate email format
-    if (!isValidEmail(email)) {
-      return next(new AppError('Please provide a valid email', 400));
-    }
-
-    // Validate password strength
-    if (!isStrongPassword(password)) {
-      return next(
-        new AppError(
-          'Password must be at least 6 characters and contain at least 1 number',
-          400
-        )
-      );
-    }
 
     // Check if user already exists
     const userExists = await User.findOne({ email });
@@ -41,10 +21,10 @@ export const register = async (
       return next(new AppError('User already exists', 400));
     }
 
-    // Create user with sanitized input
+    // Create user
     const user = await User.create({
-      name: sanitizeInput(name),
-      email: email.toLowerCase(),
+      name,
+      email,
       password
     });
 
@@ -59,20 +39,15 @@ export const register = async (
 // @route   POST /api/auth/login
 // @access  Public
 export const login = async (
-  req: Request,
+  req: Request<{}, {}, LoginInput>,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { email, password } = req.body;
 
-    // Validate email and password
-    if (!email || !password) {
-      return next(new AppError('Please provide an email and password', 400));
-    }
-
     // Check for user
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
       return next(new AppError('Invalid credentials', 401));

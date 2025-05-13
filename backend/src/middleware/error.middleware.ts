@@ -4,11 +4,17 @@ import { Request, Response, NextFunction } from 'express';
 export class AppError extends Error {
   statusCode: number;
   isOperational: boolean;
+  errors?: Array<{ path: string; message: string }>;
 
-  constructor(message: string, statusCode: number) {
+  constructor(
+    message: string, 
+    statusCode: number, 
+    errors?: Array<{ path: string; message: string }>
+  ) {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = true;
+    this.errors = errors;
 
     Error.captureStackTrace(this, this.constructor);
   }
@@ -23,6 +29,11 @@ export const errorHandler = (
 ) => {
   let error = { ...err };
   error.message = err.message;
+  
+  // Pass through the errors property
+  if ((err as AppError).errors) {
+    (error as AppError).errors = (err as AppError).errors;
+  }
 
   // Log error for dev
   console.error(err);
@@ -47,8 +58,20 @@ export const errorHandler = (
     error = new AppError(message, 400);
   }
 
-  res.status((error as AppError).statusCode || 500).json({
+  // Build the response object
+  const response: {
+    success: boolean;
+    error: string;
+    errors?: Array<{ path: string; message: string }>;
+  } = {
     success: false,
-    error: error.message || 'Server Error'
-  });
+    error: error.message || 'Server Error',
+  };
+
+  // Add detailed errors if available
+  if ((error as AppError).errors) {
+    response.errors = (error as AppError).errors;
+  }
+
+  res.status((error as AppError).statusCode || 500).json(response);
 }; 
