@@ -5,7 +5,7 @@ import { Link, NavLink } from 'react-router-dom'
 const Sidebar: React.FC = () => {
   return (
     <>
-      <aside className='w-1/4 h-screen bg-[#055992] p-5 text-white flex flex-col items-center'>
+      <aside className='w-1/5 h-screen bg-[#055992] p-5 text-white flex flex-col items-center'>
         <div className='flex justify-center items-center'>
           <Link to='/dashboard' className='text-2xl font-semibold'>
             <img src={logo} alt='Fix It Up Logo' className='rounded-full' width={96} />

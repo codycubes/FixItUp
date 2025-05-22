@@ -1,18 +1,30 @@
 import React from 'react'
-import Login from './Pages/Login'
-import Register from './Pages/Register'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import Sidebar from './Components/Sidebar'
-import { BrowserRouter } from 'react-router-dom'
+import Navbar from './Components/Navbar'
+import Dashboard from './Pages/Dashboard'
 
 function App() {
   return (
-    <>
-      <BrowserRouter>
-        {/* <Login />
-        <Register /> */}
+    <BrowserRouter>
+      <div className="flex h-screen">
+        {/* Sidebar with fixed width */}
         <Sidebar />
-      </BrowserRouter>
-    </>
+        {/* Main content area */}
+        <div className="flex-grow flex flex-col">
+          {/* Navbar at the top */}
+          <Navbar />
+          {/* Main content below the Navbar */}
+          <div className="flex-grow p-5">
+            <Routes>
+            <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              {/* Add other routes here */}
+            </Routes>
+          </div>
+        </div>
+      </div>
+    </BrowserRouter>
   )
 }
 
