@@ -1,32 +1,37 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import config from '../config/config';
 
 export interface IUser extends Document {
-  name: string;
+  username: string;
   email: string;
   password: string;
+  roleId: mongoose.Types.ObjectId;
+  municipalityId?: mongoose.Types.ObjectId;
+  corporationId?: mongoose.Types.ObjectId;
   createdAt: Date;
+  updatedAt: Date;
   comparePassword(enteredPassword: string): Promise<boolean>;
   getSignedJwtToken(): string;
 }
 
 const UserSchema: Schema = new Schema({
-  name: {
+  username: {
     type: String,
-    required: [true, 'Please add a name'],
+    required: [true, 'Please add a username'],
     trim: true,
-    maxlength: [50, 'Name cannot be more than 50 characters']
+    maxlength: [50, 'Username cannot be more than 50 characters'],
+    unique: true
   },
   email: {
     type: String,
     required: [true, 'Please add an email'],
     unique: true,
-    // match: [
-    //   /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-    //   'Please add a valid email'
-    // ]
+    match: [
+      /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+      'Please add a valid email'
+    ]
   },
   password: {
     type: String,
@@ -34,10 +39,31 @@ const UserSchema: Schema = new Schema({
     minlength: [6, 'Password must be at least 6 characters'],
     select: false
   },
+  roleId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Role',
+    required: [true, 'Please add a role']
+  },
+  municipalityId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Municipality',
+    // Not required for all users (e.g., Super Admin, System Admin)
+  },
+  corporationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Corporation',
+    // Not required for all users (e.g., Municipality users)
+  },
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
+}, {
+  timestamps: true
 });
 
 // Encrypt password using bcrypt
@@ -54,11 +80,12 @@ UserSchema.pre<IUser>('save', async function (next) {
 // Sign JWT and return
 UserSchema.methods.getSignedJwtToken = function (): string {
   const payload = { id: this._id };
-  const secret = config.jwtSecret;
-  const options = { expiresIn: config.jwtExpire };
+  const secret = config.jwtSecret as Secret;
   
-  // @ts-ignore - Bypassing TypeScript error with JWT sign
-  return jwt.sign(payload, secret, options);
+  // @ts-ignore - Bypassing TypeScript error with JWT options
+  return jwt.sign(payload, secret, {
+    expiresIn: config.jwtExpire
+  });
 };
 
 // Match user entered password to hashed password in database

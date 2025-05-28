@@ -12,10 +12,12 @@ export const register = async (
   next: NextFunction
 ) => {
   try {
-    const { name, email, password } = req.body;
+    const { username, email, password, roleId, municipalityId, corporationId } = req.body;
 
     // Check if user already exists
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ 
+      $or: [{ email }, { username }] 
+    });
 
     if (userExists) {
       return next(new AppError('User already exists', 400));
@@ -23,9 +25,12 @@ export const register = async (
 
     // Create user
     const user = await User.create({
-      name,
+      username,
       email,
-      password
+      password,
+      roleId,
+      ...(municipalityId && { municipalityId }),
+      ...(corporationId && { corporationId })
     });
 
     // Send token response
@@ -76,7 +81,10 @@ export const getMe = async (
   next: NextFunction
 ) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id)
+      .populate('roleId', 'roleName')
+      .populate('municipalityId', 'name')
+      .populate('corporationId', 'name');
 
     res.status(200).json({
       success: true,
@@ -101,8 +109,11 @@ const sendTokenResponse = (
     token,
     user: {
       id: user._id,
-      name: user.name,
-      email: user.email
+      username: user.username,
+      email: user.email,
+      roleId: user.roleId,
+      municipalityId: user.municipalityId,
+      corporationId: user.corporationId
     }
   });
 }; 
